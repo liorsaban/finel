@@ -1,0 +1,281 @@
+---
+title: 'The effect of various land uses on the effect of weather factors on dust emissions
+  in Israel '
+output:
+  slidy_presentation: default
+  ioslides_presentation: default
+  beamer_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## The effect of various land uses on the effect of weather factors on dust emissions in Israel
+
+Gal Blecher 204177620
+
+Lior Saban 308110246
+
+
+## Literature review
+
+Small particle concentration (pm10, pm2.5) is known to have a significant impact on human health, and has been extensively discussed in the last 30 years. On the other hand, the effect of land use on particle emissions has not been the subject of research in many studies (Stephen D. Superczynski, 2011).
+
+## The study goal
+* The purpose of this study is to examine the effect of land use and geographical indications on the degree of influence of various environmental characteristics related to dust emissions (wind, temperature, etc.) on dust emissions (PM10).
+
+* The purpose of this work is to demonstrate the processing and integration of  multiple databases, statistical analysis that enables us to answer a research question and to demonstrate use of the tools we have learned to display  the results.
+
+## Method
+
+* From the Ministry of Environmental Protection database we chose the measurement stations that we have data on land use in their localities.
+
+* Using linear regression, the degree of influence of environmental characteristics on dust emissions will be calculated for each locality.
+
+* Using linear regression, the degree of influence of various land uses (grouped into categories) will be calculated on the intensity of the effect of the calculated environmental characteristics.
+
+## Research data - land use
+* Data on land use in the study from the local authorities' data files for 2015. [csv file surce](https://datahub.io/budgetkey/lamas-municipal-data/r/0.html)
+
+* The original data file contains 386 variables and 255 observations for the municipal authorities.
+
+* Since the format does not support Hebrew, we had to manually translate the name of the settlement in the original file
+
+
+## Research data - environmental characteristics and dust emissions
+* Data on environmental characteristics and dust emissions from the Ministry of the Environment [website](https://www.svivaaqm.net/Default.rtl.aspx).
+
+* You can generate data reports for each station separately by period and up to an  resolution of average for every 5 minutes period.
+
+* Since the format does not support Hebrew, we had to manually translate the name of the variables.
+
+
+## map of environmental data station
+```{r, fig.retina=NULL, out.width=200, echo=FALSE}
+knitr::include_graphics("C:/work/pic/map.jpg")
+```
+
+
+
+
+```{r , echo=F,include=FALSE}
+
+
+#Libraries
+library(dplyr)
+library(fastmatch)
+library(data.table)
+library(RColorBrewer)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(gtable)
+library(tidyverse)
+```
+
+```{r , echo=F,include=FALSE}
+
+municipal_data_15=read.csv("C:/work/lms/municipal_data_15.csv")
+
+#subseting the database so it contains only the research variables
+colnames_uses_land= colnames(municipal_data_15 %>% dplyr:: select(ends_with("pct_of_all_area_jurisdiction")))
+
+my_vars_names=c("fingerprint",
+                colnames_uses_land)
+
+my_vars_numbers=fmatch(my_vars_names,names(municipal_data_15))
+municipal_data_15=municipal_data_15[,my_vars_numbers] 
+
+localities_numbers=fmatch(c("Ashkelon","Beersheva","Givattaim","Haifa","Jerusalem","Modiin","TelAviv"),municipal_data_15$fingerprint)
+
+municipal_data_15=municipal_data_15[localities_numbers,]
+
+#Changing the variable names to make graphing & understanding easier
+new_names=c("name",
+            "p_other_open_area",
+            "p_buildings_agricultural",
+            "p_commerce_offices",
+            "p_culture_leisure_recreation_sport",
+            "p_education ",
+            "p_forest_grove",
+            "p_gardening_decoration_park_public",
+            "p_growth_field",
+            "p_health_welfare",
+            "p_industry",
+            "p_infrastructure_transporation",
+            "p_plantation",
+            "p_residential",
+            "p_services_public")
+setnames(municipal_data_15, old=my_vars_names, new=new_names)
+rm(my_vars_names,new_names)
+
+#Defining of land uses valeu NA = 0
+municipal_data_15[,][is.na(municipal_data_15[,])]=0
+
+#Defining of lumped land uses
+municipal_data_15$industry_commerce=municipal_data_15$p_buildings_agricultural+municipal_data_15$p_commerce_offices+municipal_data_15$p_industry
+
+municipal_data_15$green_areas=municipal_data_15$p_forest_grove+municipal_data_15$p_gardening_decoration_park_public+municipal_data_15$p_plantation+municipal_data_15$p_culture_leisure_recreation_sport
+  
+municipal_data_15$agricultural=municipal_data_15$p_growth_field
+
+municipal_data_15$residential_services=municipal_data_15$p_residential+municipal_data_15$p_education+municipal_data_15$p_health_welfare+municipal_data_15$p_services_public
+
+municipal_data_15$other_open_areas=municipal_data_15$p_other_open_area+municipal_data_15$p_infrastructure_transporation
+
+
+#Bar plot data of lumped land uses
+lumped_use_col_name=c( "other_open_areas",
+                       "industry_commerce",
+                       "green_areas",
+                       "agricultural",
+                       "residential_services")
+
+lumped_use_numbers=fmatch(lumped_use_col_name,names(municipal_data_15))
+barplot_data=municipal_data_15[,lumped_use_numbers]
+barplot_data=as.matrix(barplot_data)
+colnames(barplot_data)=lumped_use_col_name
+rownames(barplot_data)=municipal_data_15$name
+barplot_data=t(barplot_data)
+
+
+
+# Get stacked barplot
+lumped_use_name=c( "other_open_areas",
+                       "industry_commerce",
+                       "green_areas",
+                       "agricultural",
+                       "residential_services")
+
+
+#Creating colors vector for future use
+coul=c(brewer.pal(name="Dark2", n = 8), brewer.pal(name="Paired", n = 6))
+```
+
+## lumped land uses in the localities
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+barplot(barplot_data,col=coul,border="white",space=0.03,font.axis=1,ylab="land use in %", xlab="settlement",las=2,cex.names = 0.7,cex.axis = 0.8)
+legend("bottomright",inset=c(-0,0),title="lumped land use",lumped_use_name,fill=coul,horiz=F,cex=0.5,ncol=3)
+```
+
+
+
+
+```{r , echo=F,include=FALSE}
+
+## import_multiple_csv_files_to_R
+# Purpose: Import multiple csv files to the Global Environment in R
+
+# set working directory
+setwd("C:/work/data/demo/")
+
+# list all csv files from the current directory
+list.files(pattern=".csv$") # use the pattern argument to define a common pattern  for import files with regex. Here: .csv
+
+# create a list from these files
+list.filenames<-list.files(pattern=".csv$")
+list.filenames
+
+# create an empty list that will serve as a container to receive the incoming files
+list.data<-list()
+
+# create a loop to read in your data
+for (i in 1:length(list.filenames))
+{
+  list.data[[i]]<-read.csv(list.filenames[i],stringsAsFactors = FALSE)
+}
+
+
+
+list.cor=list()
+for (j in 1:length(list.data)) {
+  data=as.data.frame(list.data[j])
+  colnames(data)[1:4]=c("Rain_mm","Temp_c","WS_m.sec","PM10")
+  data$Rain_mm=as.numeric(data$Rain_mm)
+  data$Temp_c=as.numeric(data$Temp_c)
+  data$WS_m.sec=as.numeric(data$WS_m.sec)
+  data$PM10=as.numeric(data$PM10)
+  data=na.omit(data)
+  corilation=NULL
+  pvalue=NULL
+  var=NULL
+  for (o in 1:3) {
+    
+    res<-cor.test(data[,o],data[,4], method="pearson")
+    x=as.numeric(res$estimate)
+    corilation=c(corilation,x)
+    pvalue = c(pvalue,res$p.value)
+    var=c(var,colnames(data)[o])
+  }
+  d=data_frame(var,corilation,pvalue)
+  list.cor[[j]]=d
+}
+
+# add the names of your data to the list
+names(list.cor)<-list.filenames
+
+data=as.data.frame(list.data[1])
+  colnames(data)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+  data$Rain_mm=as.numeric(data$Rain_mm)
+  data$Temp_c=as.numeric(data$Temp_c)
+  data$WS_m.sec=as.numeric(data$WS_m.sec)
+  data$PM10=as.numeric(data$PM10)
+  data=na.omit(data)
+
+```
+
+## pm10 in time exempel
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+#  graphics:
+
+g1=ggplot(data, aes(x=Date, y= PM10, color=Temp_c)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
+g2=ggplot(data, aes(x=Date, y= PM10, color=Rain_mm)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
+g3=ggplot(data, aes(x=Date, y= PM10, color=WS_m.sec)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
+
+# Show the 4 plots on the same page
+grid.arrange(g1, g2, g3, ncol=1, nrow =3)
+
+```
+
+
+```{r , echo=F,include=FALSE}
+
+ cor_pm10 <- do.call("rbind", list.cor)
+transpose(cor_pm10)
+cor_pm10$name=row.names(cor_pm10)
+row.names(cor_pm10)=NULL
+cor_pm10$pvalue=NULL
+
+cor_pm10=cor_pm10 %>%separate(name, into = c("name", "var"))
+cor_pm10$var=c("Rain_mm","Temp_c","WS_m.sec")
+
+cor_pm10=cor_pm10 %>%spread(key = "var",
+     value= "corilation")
+#2#############################################3
+
+cor_pm10=cor_pm10%>%inner_join(municipal_data_15,by="name") 
+
+mc_data=cor_pm10[,2:length(cor_pm10)]
+mc_data=as.data.frame(round(cor(mc_data),2)) 
+x=fmatch(c("Rain_mm","Temp_c","WS_m.sec"),names(mc_data))
+y=fmatch(lumped_use_name,row.names(mc_data))
+mc_data=mc_data[x,y]
+
+mc=mc_data %>% 
+  gather(other_open_areas,industry_commerce,green_areas,agricultural,residential_services, key = "land_use", value = "value")
+mc$var=c("Rain_mm","Temp_c","WS_m.sec")
+
+```
+
+## pm10 cor
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+
+ggplot(data = mc, aes(x=var, y=land_use, fill=value)) +geom_tile()+scale_fill_gradient2(low ="#37004D" , high = "#f55b1d",midpoint = 0, limit = c(-1,1),name="Pearson\nCorrelation")
+
+```
