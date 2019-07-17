@@ -57,8 +57,6 @@ knitr::include_graphics("C:/work/pic/map.jpg")
 ```
 
 
-
-
 ```{r , echo=F,include=FALSE}
 
 
@@ -72,6 +70,10 @@ library(gridExtra)
 library(grid)
 library(gtable)
 library(tidyverse)
+library(openair)
+library(knitr)
+library(kableExtra) 
+
 ```
 
 ```{r , echo=F,include=FALSE}
@@ -133,31 +135,26 @@ lumped_use_col_name=c( "other_open_areas",
                        "residential_services")
 
 lumped_use_numbers=fmatch(lumped_use_col_name,names(municipal_data_15))
+
+
+# Get stacked barplot data
+lumped_use_numbers=fmatch(c(lumped_use_col_name,"name"),names(municipal_data_15))
 barplot_data=municipal_data_15[,lumped_use_numbers]
-barplot_data=as.matrix(barplot_data)
-colnames(barplot_data)=lumped_use_col_name
-rownames(barplot_data)=municipal_data_15$name
-barplot_data=t(barplot_data)
+setnames(barplot_data, old="name", new="locality")
+
+barplot_data=barplot_data %>% 
+  gather(`other_open_areas`,`industry_commerce`,`green_areas`,`agricultural`,`residential_services`, key = "lumped_use", value = "percentage")
 
 
-
-# Get stacked barplot
-lumped_use_name=c( "other_open_areas",
-                       "industry_commerce",
-                       "green_areas",
-                       "agricultural",
-                       "residential_services")
-
-
-#Creating colors vector for future use
-coul=c(brewer.pal(name="Dark2", n = 8), brewer.pal(name="Paired", n = 6))
 ```
 
 ## lumped land uses in the localities
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
-barplot(barplot_data,col=coul,border="white",space=0.03,font.axis=1,ylab="land use in %", xlab="settlement",las=2,cex.names = 0.7,cex.axis = 0.8)
-legend("bottomright",inset=c(-0,0),title="lumped land use",lumped_use_name,fill=coul,horiz=F,cex=0.5,ncol=3)
+ ggplot() + geom_bar(aes(y = percentage, x = locality, fill = lumped_use), data = barplot_data, stat="identity")+
+  ggtitle("lumped land uses (%)") +
+  theme(legend.position="bottom", legend.direction="horizontal",
+        legend.title = element_blank())
 ```
 
 
@@ -213,34 +210,103 @@ for (j in 1:length(list.data)) {
   list.cor[[j]]=d
 }
 
+
+
 # add the names of your data to the list
 names(list.cor)<-list.filenames
 
-data=as.data.frame(list.data[1])
-  colnames(data)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
-  data$Rain_mm=as.numeric(data$Rain_mm)
-  data$Temp_c=as.numeric(data$Temp_c)
-  data$WS_m.sec=as.numeric(data$WS_m.sec)
-  data$PM10=as.numeric(data$PM10)
-  data=na.omit(data)
+data_1=as.data.frame(list.data[1])
+  colnames(data_1)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+ data_1$Rain_mm=as.numeric(data_1$Rain_mm)
+  data_1$Temp_c=as.numeric(data_1$Temp_c)
+  data_1$WS_m.sec=as.numeric(data_1$WS_m.sec)
+  data_1$PM10=as.numeric(data_1$PM10)
+  data_1$h=NULL 
+  data_1=data_1 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+  data_1$date=as.Date(data_1$date)
+  data_1=na.omit(data_1)
+data_1= timeAverage(data_1, avg.time = "day")
+
+data_2=as.data.frame(list.data[2])
+  colnames(data_2)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+ data_2$Rain_mm=as.numeric(data_2$Rain_mm)
+  data_2$Temp_c=as.numeric(data_2$Temp_c)
+  data_2$WS_m.sec=as.numeric(data_2$WS_m.sec)
+  data_2$PM10=as.numeric(data_2$PM10)
+  data_2$h=NULL 
+  data_2=data_2 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+  data_2$date=as.Date(data_2$date)
+  data_2=na.omit(data_2)
+data_2=timeAverage(data_2, avg.time = "day")
+
+data_3=as.data.frame(list.data[4])
+  colnames(data_3)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+ data_3$Rain_mm=as.numeric(data_3$Rain_mm)
+  data_3$Temp_c=as.numeric(data_3$Temp_c)
+  data_3$WS_m.sec=as.numeric(data_3$WS_m.sec)
+  data_3$PM10=as.numeric(data_3$PM10)
+  data_3$h=NULL 
+  data_3=data_3 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+  data_3$date=as.Date(data_3$date)
+  data_3=na.omit(data_3)
+data_3=timeAverage(data_3, avg.time = "day")
+
 
 ```
 
-## pm10 in time exempel
+## pm10 and wind exempel
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
 
 #  graphics:
+g1=ggplot(data_2, aes(x=date, y= PM10, color=WS_m.sec
+))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")
 
-g1=ggplot(data, aes(x=Date, y= PM10, color=Temp_c)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
-g2=ggplot(data, aes(x=Date, y= PM10, color=Rain_mm)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
-g3=ggplot(data, aes(x=Date, y= PM10, color=WS_m.sec)) + geom_point(size=1) + theme(legend.position=c(0.8, 0.2))
 
-# Show the 4 plots on the same page
-grid.arrange(g1, g2, g3, ncol=1, nrow =3)
+g2=ggplot(data_3, aes(x=date, y= PM10, color=WS_m.sec
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="wind speed (m/s)"))
+
+# Show the plots on the same page
+grid.arrange(g1, g2, ncol=1, nrow =2)
 
 ```
 
+## pm10 and temp exempel
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+#  graphics:
+g1=ggplot(data_3, aes(x=date, y= PM10, color=Temp_c
+))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")
+
+
+g2=ggplot(data_1, aes(x=date, y= PM10, color=Temp_c
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="Temp (c)"))
+
+# Show the plots on the same page
+grid.arrange(g1, g2, ncol=1, nrow =2)
+
+```
+
+## pm10 and rain exempel
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+#  graphics:
+g1=ggplot(data_2, aes(x=date, y= PM10, color=Rain_mm
+))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")
+
+
+g2=ggplot(data_1, aes(x=date, y= PM10, color=Rain_mm
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="Rain (mm/h)"))
+
+# Show the  plots on the same page
+grid.arrange(g1, g2, ncol=1, nrow =2)
+
+```
 
 ```{r , echo=F,include=FALSE}
 
@@ -255,19 +321,41 @@ cor_pm10$var=c("Rain_mm","Temp_c","WS_m.sec")
 
 cor_pm10=cor_pm10 %>%spread(key = "var",
      value= "corilation")
-#2#############################################3
+
+cor_lokalty=cor_pm10
+  #2#############################################3
 
 cor_pm10=cor_pm10%>%inner_join(municipal_data_15,by="name") 
 
 mc_data=cor_pm10[,2:length(cor_pm10)]
 mc_data=as.data.frame(round(cor(mc_data),2)) 
 x=fmatch(c("Rain_mm","Temp_c","WS_m.sec"),names(mc_data))
-y=fmatch(lumped_use_name,row.names(mc_data))
+y=fmatch(lumped_use_col_name,row.names(mc_data))
 mc_data=mc_data[x,y]
 
 mc=mc_data %>% 
   gather(other_open_areas,industry_commerce,green_areas,agricultural,residential_services, key = "land_use", value = "value")
 mc$var=c("Rain_mm","Temp_c","WS_m.sec")
+
+
+```
+
+## pm10 TO WEATHER COR MATRIX
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+kable(cor_lokalty,caption = "pm10 TO WEATHER COR MATRIX")%>%
+  kable_styling(c("striped", "bordered"))
+
+
+```
+
+## WEATHER COR TO pm10 COR TO LAND USE MATRIX
+
+```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+
+
+kable(mc_data ,caption = "WEATHER COR TO pm10 COR TO LAND USE MATRIX")%>%kable_styling(c("striped", "bordered")) 
 
 ```
 
