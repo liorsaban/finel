@@ -1,66 +1,20 @@
+
 ---
-title: 'The effect of various land uses on the effect of weather factors on dust emissions
-  in Israel '
-output:
-  slidy_presentation: default
-  ioslides_presentation: default
-  beamer_presentation: default
+title: "Data and Spatial Data Management S2 | Final Project | Gal Blecher ,Lior Saban"
+output: 
+  flexdashboard::flex_dashboard:
+    storyboard: true
+    theme : "paper"
+
+
 ---
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```
-
-## The effect of various land uses on the effect of weather factors on dust emissions in Israel
-
-Gal Blecher 204177620
-
-Lior Saban 308110246
-
-
-## Literature review
-
-Small particle concentration (pm10, pm2.5) is known to have a significant impact on human health, and has been extensively discussed in the last 30 years. On the other hand, the effect of land use on particle emissions has not been the subject of research in many studies (Stephen D. Superczynski, 2011).
-
-## The study goal
-* The purpose of this study is to examine the effect of land use and geographical indications on the degree of influence of various environmental characteristics related to dust emissions (wind, temperature, etc.) on dust emissions (PM10).
-
-* The purpose of this work is to demonstrate the processing and integration of  multiple databases, statistical analysis that enables us to answer a research question and to demonstrate use of the tools we have learned to display  the results.
-
-## Method
-
-* From the Ministry of Environmental Protection database we chose the measurement stations that we have data on land use in their localities.
-
-* Using linear regression, the degree of influence of environmental characteristics on dust emissions will be calculated for each locality.
-
-* Using linear regression, the degree of influence of various land uses (grouped into categories) will be calculated on the intensity of the effect of the calculated environmental characteristics.
-
-## Research data - land use
-* Data on land use in the study from the local authorities' data files for 2015. [csv file surce](https://datahub.io/budgetkey/lamas-municipal-data/r/0.html)
-
-* The original data file contains 386 variables and 255 observations for the municipal authorities.
-
-* Since the format does not support Hebrew, we had to manually translate the name of the settlement in the original file
-
-
-## Research data - environmental characteristics and dust emissions
-* Data on environmental characteristics and dust emissions from the Ministry of the Environment [website](https://www.svivaaqm.net/Default.rtl.aspx).
-
-* You can generate data reports for each station separately by period and up to an  resolution of average for every 5 minutes period.
-
-* Since the format does not support Hebrew, we had to manually translate the name of the variables.
-
-
-## map of environmental data station
-```{r, fig.retina=NULL, out.width=200, echo=FALSE}
-knitr::include_graphics("C:/work/pic/map.jpg")
-```
 
 
 ```{r , echo=F,include=FALSE}
-
-
+# dont forget to installed.packages("flexdashboard")
 #Libraries
+library(sp)
+library(leaflet)
 library(dplyr)
 library(fastmatch)
 library(data.table)
@@ -73,8 +27,59 @@ library(tidyverse)
 library(openair)
 library(knitr)
 library(kableExtra) 
+library(magick)
+library(gapminder)
 
 ```
+
+### Introduction
+
+#### The effect of various land uses on the effect of weather factors on dust emissions in Israel
+
+######  Lior Saban 308110246, Gal Blecher 204177620
+
+### Literature review
+
+- Small particle concentration (PM10, PM2.5) is known to have a significant impact on human health, and has been extensively discussed in the last 30 years. 
+
+
+- The concentration of Particle matter in high values would cause more severe air pollution (Zhao CX, 2014). There for, Atmospheric pollution increases the risk of respiratory and cardiovascular systems in the elderly and reduces the survival rates in newborns as acute reduction in lung function (Wilson et al., 2004).
+
+
+- Studies have shown that there is a relationship and influence between PM10 particles and meteorological factors. These factors can include Temperature, Wind speed, Atmospheric pressure and more.(Tian, 2014)
+
+
+- On the other hand, the effect of land use on particle emissions has not been the subject of research in many studies. Land use was another factor that has been researched for its influence on air pollution.
+
+
+- The types of land use and land cover (LULC) practices seen in these Urban areas can influence the amount of PM by replacing natural land cover with manmade sources of pollution.
+
+
+- The conversion of forest, grasslands and farmland to residential housing, industrial complexes and large commercial centers often lead to an increase in emissions. (Stephen D. Superczynski, 2011).Few studies have tried to link these two models together. However, Daily PM10 concentrations were predicted based on land use and meteorology as found in new LUR (Land use regression) models (Liu et al., 2015).
+
+
+### Goals
+
+###### study goal
+
+- The purpose of this study is to examine the effect of land use and geographical indications on the degree of influence of various environmental characteristics related to dust emissions (wind, temperature, etc.) on dust emissions (PM10).
+
+###### work process goal
+- The purpose of this work is to demonstrate the processing and integration of  multiple databases, statistical analysis that enables us to answer a research question and to demonstrate use of the tools we have learned to display  the results.
+
+
+
+### Method
+
+- From the Ministry of Environmental Protection database we chose the measurement stations that we have data on land use in their localities.
+
+- Using linear regression, the degree of influence of environmental characteristics on dust emissions will be calculated for each locality.
+
+- Using linear regression, the degree of influence of various land uses (grouped into categories) will be calculated on the intensity of the effect of the calculated environmental characteristics.
+
+
+ 
+### Research data - land use
 
 ```{r , echo=F,include=FALSE}
 
@@ -148,14 +153,41 @@ barplot_data=barplot_data %>%
 
 ```
 
-## lumped land uses in the localities
-
-```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+```{r}
  ggplot() + geom_bar(aes(y = percentage, x = locality, fill = lumped_use), data = barplot_data, stat="identity")+
   ggtitle("lumped land uses (%)") +
   theme(legend.position="bottom", legend.direction="horizontal",
         legend.title = element_blank())
 ```
+
+
+---
+
+- Data on land use in the study from the local authorities' data files for 2015. [csv file surce](https://datahub.io/budgetkey/lamas-municipal-data/r/0.html)
+
+- The original data file contains 386 variables and 255 observations for the municipal authorities.
+
+- Since the format does not support Hebrew, we had to manually translate the name of the settlement in the original file
+
+
+### Research data - environmental characteristics and dust emissions
+
+```{r}
+
+long=c(34.574073, 34.786712, 34.809934, 35.008736, 35.21933, 35.012585, 34.789471)
+lat=c(31.668719, 31.253107, 32.071429, 32.80375, 31.782649, 31.895414, 32.076323)
+dfc=data.frame(long,lat)
+map=leaflet(dfc) %>% addMarkers() %>% addTiles()
+map
+```
+
+---
+
+- Data on environmental characteristics and dust emissions from the Ministry of the Environment [website](https://www.svivaaqm.net/Default.rtl.aspx).
+
+- You can generate data reports for each station separately by period and up to an  resolution of average for every 5 minutes period.
+
+- Since the format does not support Hebrew, we had to manually translate the name of the variables.
 
 
 
@@ -215,6 +247,117 @@ for (j in 1:length(list.data)) {
 # add the names of your data to the list
 names(list.cor)<-list.filenames
 
+
+#######################################################################33
+data_1=as.data.frame(list.data[1])
+colnames(data_1)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_1$Rain_mm=as.numeric(data_1$Rain_mm)
+data_1$Temp_c=as.numeric(data_1$Temp_c)
+data_1$WS_m.sec=as.numeric(data_1$WS_m.sec)
+data_1$PM10=as.numeric(data_1$PM10)
+data_1$h=NULL 
+data_1=data_1 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_1$date=as.Date(data_1$date)
+data_1=na.omit(data_1)
+data_1= timeAverage(data_1, avg.time = "day")
+data_1$locality="Ashkelon"
+
+
+data_2=as.data.frame(list.data[2])
+colnames(data_2)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_2$Rain_mm=as.numeric(data_2$Rain_mm)
+data_2$Temp_c=as.numeric(data_2$Temp_c)
+data_2$WS_m.sec=as.numeric(data_2$WS_m.sec)
+data_2$PM10=as.numeric(data_2$PM10)
+data_2$h=NULL 
+data_2=data_2 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_2$date=as.Date(data_2$date)
+data_2=na.omit(data_2)
+data_2=timeAverage(data_2, avg.time = "day")
+data_2$locality="Beersheva"
+
+
+data_3=as.data.frame(list.data[4])
+colnames(data_3)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_3$Rain_mm=as.numeric(data_3$Rain_mm)
+data_3$Temp_c=as.numeric(data_3$Temp_c)
+data_3$WS_m.sec=as.numeric(data_3$WS_m.sec)
+data_3$PM10=as.numeric(data_3$PM10)
+data_3$h=NULL 
+data_3=data_3 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_3$date=as.Date(data_3$date)
+data_3=na.omit(data_3)
+data_3=timeAverage(data_3, avg.time = "day")
+data_3$locality="Givattaim"
+
+data_4=as.data.frame(list.data[4])
+colnames(data_4)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_4$Rain_mm=as.numeric(data_4$Rain_mm)
+data_4$Temp_c=as.numeric(data_4$Temp_c)
+data_4$WS_m.sec=as.numeric(data_4$WS_m.sec)
+data_4$PM10=as.numeric(data_4$PM10)
+data_4$h=NULL 
+data_4=data_4 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_4$date=as.Date(data_4$date)
+data_4=na.omit(data_4)
+data_4= timeAverage(data_4, avg.time = "day")
+data_4$locality="Haifa"
+
+data_5=as.data.frame(list.data[5])
+colnames(data_5)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_5$Rain_mm=as.numeric(data_5$Rain_mm)
+data_5$Temp_c=as.numeric(data_5$Temp_c)
+data_5$WS_m.sec=as.numeric(data_5$WS_m.sec)
+data_5$PM10=as.numeric(data_5$PM10)
+data_5$h=NULL 
+data_5=data_5 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_5$date=as.Date(data_5$date)
+data_5=na.omit(data_5)
+data_5= timeAverage(data_5, avg.time = "day")
+data_5$locality="Jerusalem"
+
+data_6=as.data.frame(list.data[6])
+colnames(data_6)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_6$Rain_mm=as.numeric(data_6$Rain_mm)
+data_6$Temp_c=as.numeric(data_6$Temp_c)
+data_6$WS_m.sec=as.numeric(data_6$WS_m.sec)
+data_6$PM10=as.numeric(data_6$PM10)
+data_6$h=NULL 
+data_6=data_6 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_6$date=as.Date(data_6$date)
+data_6=na.omit(data_6)
+data_6= timeAverage(data_6, avg.time = "day")
+data_6$locality="Modiin"
+
+data_7=as.data.frame(list.data[7])
+colnames(data_7)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
+data_7$Rain_mm=as.numeric(data_7$Rain_mm)
+data_7$Temp_c=as.numeric(data_7$Temp_c)
+data_7$WS_m.sec=as.numeric(data_7$WS_m.sec)
+data_7$PM10=as.numeric(data_7$PM10)
+data_7$h=NULL 
+data_7=data_7 %>%separate(Date, into = c("d", "m","y")) %>% 
+  unite(date ,y, m, d, sep = "-")
+data_7$date=as.Date(data_7$date)
+data_7=na.omit(data_7)
+data_7= timeAverage(data_7, avg.time = "day")
+data_7$locality="TelAviv"
+
+gap_data=rbind(data_1,data_2,data_3,data_4,data_5,data_6,data_7)
+
+gap_data=na.omit(gap_data)
+
+
+ gap_data=subset(gap_data, date >= as.Date("2015-02-01") )
+ gap_data=subset(gap_data, date <= as.Date("2015-02-01") )
+#############################################################
+
 data_1=as.data.frame(list.data[1])
   colnames(data_1)[1:6]=c("Rain_mm","Temp_c","WS_m.sec","PM10","h","Date")
  data_1$Rain_mm=as.numeric(data_1$Rain_mm)
@@ -257,56 +400,122 @@ data_3=timeAverage(data_3, avg.time = "day")
 
 ```
 
-## pm10 and wind exempel
+```{r , echo=F,include=FALSE}
+
+
+ 
+ img =image_graph(600, 340, res = 96)
+datalist=split(gap_data, gap_data$date)
+out=lapply(datalist, function(data){
+  p=ggplot(data, aes(PM10, Temp_c, color = locality))+ylim(-5, 40)+ geom_point()+ scale_x_log10(limits = range(gap_data$PM10))+ggtitle(data$date)+theme_classic()
+  print(p)
+})
+dev.off()
+animation <- image_animate(img, fps = 4)
+print(animation)
+image_write(animation, "Temp_c.gif")
+
+img =image_graph(600, 340, res = 96)
+datalist=split(gap_data, gap_data$date)
+out=lapply(datalist, function(data){
+  p=ggplot(data, aes(PM10,Rain_mm, color = locality))+ylim(0,2)+ geom_point()+ scale_x_log10(limits = range(gap_data$PM10))+ggtitle(data$date)+theme_classic()
+  print(p)
+})
+dev.off()
+animation <- image_animate(img, fps = 4)
+print(animation)
+image_write(animation, "Rain_mm.gif")
+
+img =image_graph(600, 340, res = 96)
+datalist=split(gap_data, gap_data$date)
+out=lapply(datalist, function(data){
+  p=ggplot(data, aes(PM10, WS_m.sec, color = locality))+ylim(0, 15)+ geom_point()+ scale_x_log10(limits = range(gap_data$PM10))+ggtitle(data$date)+theme_classic()
+  print(p)
+})
+dev.off()
+animation <- image_animate(img, fps = 4)
+print(animation)
+image_write(animation, "WS_m.sec.gif")
+```
+
+
+### pm10 and weather characteristics change in time
+
+![](Temp_c.gif)
+![](WS_m.sec.gif)
+![](Rain_mm.gif)
+
+---
+
+- The animated graphs show the relationship between the weather characteristics and dust emissions (PM10) in the various localities throughout the year.
+
+- It is possible to see that the intensity of the influence varies among the localities.
+
+- The following three slides show the cases that have the most extreme values of weather characteristics influence on dust emissions (pm10) 
+
+
+### Extreme values of wind influence on dust emissions (pm10)
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
 
-#  graphics:
 g1=ggplot(data_2, aes(x=date, y= PM10, color=WS_m.sec
-))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")
-
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")+guides((title="wind speed (m/s)"))+scale_color_gradient(low="green", high="orange")
 
 g2=ggplot(data_3, aes(x=date, y= PM10, color=WS_m.sec
-))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="wind speed (m/s)"))
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")+guides((title="wind speed (m/s)"))+scale_color_gradient(low="green", high="orange")
 
-# Show the plots on the same page
 grid.arrange(g1, g2, ncol=1, nrow =2)
 
 ```
 
-## pm10 and temp exempel
+
+---
+
+- It can be seen that while in Be'er Sheva the significant dust emissions are accompanied by strong wind intensities, in Ashqelon wind intensities are normal during dust emission events
+
+
+### Extreme values of temperature influence on dust emissions (pm10) 
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
 
-#  graphics:
-g1=ggplot(data_3, aes(x=date, y= PM10, color=Temp_c
-))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")
 
+g1=ggplot(data_3, aes(x=date, y= PM10, color=Temp_c
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Haifa", y = "pm 10 (ug/m3)")+guides((title="Temp (c)"))+scale_color_gradient(low="green", high="orange")
 
 g2=ggplot(data_1, aes(x=date, y= PM10, color=Temp_c
-))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="Temp (c)"))
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides((title="Temp (c)"))+scale_color_gradient(low="green", high="orange")
 
-# Show the plots on the same page
 grid.arrange(g1, g2, ncol=1, nrow =2)
-
 ```
 
-## pm10 and rain exempel
+---
+
+- It can be seen that while in Haifa the significant dust emissions are accompanied by high temperatures, in Ashqelon dust emission events also occur at low temperatures.
+
+
+### Extreme values of rain influence on dust emissions (pm10)
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
 
-#  graphics:
 g1=ggplot(data_2, aes(x=date, y= PM10, color=Rain_mm
-))  + theme(legend.position = "none")+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")
-
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Beer sheva", y = "pm 10 (ug/m3)")+guides((title="rain (mm/h)"))+scale_color_gradient(low="green", high="orange")
 
 g2=ggplot(data_1, aes(x=date, y= PM10, color=Rain_mm
-))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides(color=guide_legend(title="Rain (mm/h)"))
+))  + theme(legend.position="bottom", legend.title = element_text(size = 8),legend.text = element_text(size = 4.5),legend.direction = "horizontal",legend.box.background = element_blank() )+geom_line()+theme(axis.title.x=element_blank(),axis.title.y = element_text(size = 8))+ labs(title="Ashkelon", y = "pm 10 (ug/m3)")+guides((title="rain (mm/h)"))+scale_color_gradient(low="green", high="orange")
 
-# Show the  plots on the same page
+
 grid.arrange(g1, g2, ncol=1, nrow =2)
 
 ```
+
+---
+
+- It can be seen that while in Be'er Sheva the dust emissions were reduced due to rain events, in Ashkelon the impact of rain events was weaker
+  
+
+
+### Correlation between weather and dust emissions (pm10)
+
 
 ```{r , echo=F,include=FALSE}
 
@@ -323,7 +532,8 @@ cor_pm10=cor_pm10 %>%spread(key = "var",
      value= "corilation")
 
 cor_lokalty=cor_pm10
-  #2#############################################3
+
+colnames(cor_lokalty)[1]= "locality"
 
 cor_pm10=cor_pm10%>%inner_join(municipal_data_15,by="name") 
 
@@ -340,30 +550,77 @@ mc$var=c("Rain_mm","Temp_c","WS_m.sec")
 
 ```
 
-## pm10 TO WEATHER COR MATRIX
 
 ```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
 
-kable(cor_lokalty,caption = "pm10 TO WEATHER COR MATRIX")%>%
+kable(cor_lokalty, "html",caption = "Correlation between weather and pm10")%>%
   kable_styling(c("striped", "bordered"))
 
+```
+---
+
+- Using Pearson test, we analyzed the intensity and direction of the relationship between weather factors and particle emissions in different localities.
+
+- It can be seen that the intensity and direction of the effects vary among the localities.
+
+- For example, we can see that while wind power has a weak positive effect on particle emissions in Be'er Sheva, it has almost no influence in Tel Aviv.
+
+
+### Correlation between weather correlation to dust emissions (pm10) to diverse land uses
+
+```{r}
+
+a=kable(mc_data ,caption = "Correlation between weather correlation to pm10 to diverse land uses")%>%kable_styling(c("striped", "bordered")) 
+
+b=ggplot(data = mc, aes(x=var, y=land_use, fill=value)) +geom_tile()+scale_fill_gradient2(low="navyblue",mid = "darkmagenta", high="darkorange1",midpoint = 0, limit = c(-1,1),name="Pearson\nCorrelation")
 
 ```
 
-## WEATHER COR TO pm10 COR TO LAND USE MATRIX
 
-```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
-
-
-kable(mc_data ,caption = "WEATHER COR TO pm10 COR TO LAND USE MATRIX")%>%kable_styling(c("striped", "bordered")) 
+```{r}
+a
 
 ```
 
-## pm10 cor
+---
 
-```{r,echo=F,fig.align="center", fig.width=8, fig.height=4.5}
+- Using Pearson test, we analyzed the intensity and direction of the relationship between land use and the effect of weather factors on particle emissions.
 
 
-ggplot(data = mc, aes(x=var, y=land_use, fill=value)) +geom_tile()+scale_fill_gradient2(low ="#37004D" , high = "#f55b1d",midpoint = 0, limit = c(-1,1),name="Pearson\nCorrelation")
+- It can be seen that there is a link between different land uses and the strength and direction of the relationship between weather factors and particle emissions.
+
+- For example, it can be seen that when a higher percentage of the Authority's area is an industrial building, there is a strong negative impact on the strength of the connection between wind speed and dust emissions (ie less dust emissions) and when a higher percentage of the area is agricultural, there is a strong Positive impact on the strength of the connection between wind speed and dust emissions (ie more dust emissions)
+
+
+
+### Correlation matrix
+
+```{r}
+b
 
 ```
+
+---
+
+- This illustration was introduced in order to better and more visually reflect the connections presented in the table on the previous slide.
+
+
+### discussion and conclusions
+
+- כתוב כאן
+
+
+### bibliography
+
+- Superczynski, S. (2011). Exploring Land Use and Land Cover Effects on Air Quality in Central Alabama Using GIS and Remote Sensing. Remote Sensing, 3, 2552-2567.
+
+- Yang, H. (2017). Impact of Land Use on PM2.5 Pollution in a Representative City of Middle China. Int J Environ Res Public Health. 2017 May; 14(5): 462.
+
+- הלשכה המרכזית לסטטיסטיקה. (2015). פרסומי רשויות מקומיות.
+
+- הלשכה המרכזית לסטטיסטיקה. (2016). מבוא לפרסומי רשויות מקומיות.
+
+- המשרד להגנת הסביבה, נתוני איכות אוויר, דוחות מפורטים , דוח תחנה.
+
+
+
